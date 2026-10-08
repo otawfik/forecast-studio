@@ -11,8 +11,11 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+from .features import make_supervised
 
 
 class BaseForecaster:
@@ -141,12 +144,61 @@ class ARIMAForecaster(BaseForecaster):
         return ci[:, 0], ci[:, 1]
 
 
+class LinearLagsForecaster(BaseForecaster):
+    """Linear regression on lag/rolling/calendar features, applied recursively."""
+
+    name = "linear_lags"
+
+    def __init__(self, lags: tuple[int, ...] = (1, 7, 14, 28)):
+        self.lags = tuple(lags)
+        self._model = LinearRegression()
+
+    def fit(self, df: pd.DataFrame) -> "LinearLagsForecaster":
+        super().fit(df)
+        frame = pd.DataFrame({"ds": pd.to_datetime(df["ds"]), "y": self._y})
+        X, y = make_supervised(frame, lags=self.lags)
+        self._feature_cols = list(X.columns)
+        self._model.fit(X, y)
+        return self
+
+    def _feature_row(self, history: list[float], ds: pd.Timestamp) -> list[float]:
+        row = []
+        arr = np.asarray(history, dtype=float)
+        for k in self.lags:
+            row.append(arr[-k] if len(arr) >= k else arr[0])
+            window = arr[-k:] if len(arr) >= k else arr
+            row.append(float(window.mean()))
+            row.append(float(window.std()) if len(window) > 1 else 0.0)
+        dow = ds.dayofweek
+        row += [
+            float(dow),
+            float(ds.month),
+            float(1 if dow >= 5 else 0),
+            float(np.sin(2 * np.pi * dow / 7.0)),
+            float(np.cos(2 * np.pi * dow / 7.0)),
+        ]
+        return row
+
+    def predict(self, horizon: int) -> np.ndarray:
+        history = list(self._y.to_numpy())
+        future_ds = self._future_ds(horizon)
+        preds = []
+        for i in range(horizon):
+            row = self._feature_row(history, future_ds[i])
+            X = pd.DataFrame([row], columns=self._feature_cols)
+            pred = float(self._model.predict(X)[0])
+            preds.append(pred)
+            history.append(pred)
+        return np.array(preds)
+
+
 MODELS = {
     "naive": NaiveForecaster,
     "seasonal_naive": SeasonalNaiveForecaster,
     "moving_average": MovingAverageForecaster,
     "holt_winters": HoltWintersForecaster,
     "arima": ARIMAForecaster,
+    "linear_lags": LinearLagsForecaster,
 }
 
 
