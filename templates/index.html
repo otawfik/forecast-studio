@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forecast Studio</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  p.sub { color: #94a3b8; margin: 0 0 20px; }
+  .card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  form { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
+  label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+  select, input { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  button { background: #2563eb; color: white; border: 0; border-radius: 8px; padding: 10px 22px; font-size: 15px; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  .metrics { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+  .metric { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px 18px; min-width: 110px; }
+  .metric .k { font-size: 11px; color: #94a3b8; }
+  .metric .v { font-size: 22px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #334155; }
+  th { color: #94a3b8; font-weight: 600; }
+  img.chart { width: 100%; border-radius: 8px; }
+  .error { background: #7f1d1d; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+  .note { color: #64748b; font-size: 12px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Forecast Studio</h1>
+  <p class="sub">Time series forecasting workbench: 6 models, walk-forward backtesting, prediction intervals.</p>
+
+  {% if error %}
+  <div class="error">Error: {{ error }}</div>
+  {% endif %}
+
+  <div class="card">
+    <form method="post" action="/forecast">
+      <div>
+        <label for="dataset">Dataset</label>
+        <select name="dataset" id="dataset">
+          {% for key, label in datasets.items() %}
+          <option value="{{ key }}" {% if result and result.dataset == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="model">Model</label>
+        <select name="model" id="model">
+          {% for m in models %}
+          <option value="{{ m }}" {% if result and result.model == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="horizon">Horizon (days)</label>
+        <input type="number" name="horizon" id="horizon" min="7" max="90" value="{{ result.horizon if result else 30 }}">
+      </div>
+      <div><button type="submit">Forecast</button></div>
+    </form>
+  </div>
+
+  {% if result %}
+  <div class="card">
+    <h2 style="margin-top:0">{{ result.model }} on {{ result.dataset }} ({{ result.n_points }} points)</h2>
+    <div class="metrics">
+      {% for k, v in result.metrics.items() %}
+      <div class="metric"><div class="k">{{ k }} (backtest)</div><div class="v">{{ v }}</div></div>
+      {% endfor %}
+    </div>
+    <img class="chart" src="data:image/png;base64,{{ result.chart }}" alt="forecast chart">
+    <h3>First 10 forecasted days</h3>
+    <table>
+      <tr><th>date</th><th>forecast</th><th>lower 95%</th><th>upper 95%</th></tr>
+      {% for _, row in result.table.iterrows() %}
+      <tr><td>{{ row.ds }}</td><td>{{ row.yhat }}</td><td>{{ row.yhat_lower }}</td><td>{{ row.yhat_upper }}</td></tr>
+      {% endfor %}
+    </table>
+    <p class="note">Backtest: 3-fold expanding-window walk-forward. Intervals shown where the model supports them (Holt-Winters, ARIMA).</p>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>
