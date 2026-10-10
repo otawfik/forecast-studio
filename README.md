@@ -2,6 +2,8 @@
 
 [![tests](https://github.com/otawfik/forecast-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/otawfik/forecast-studio/actions/workflows/ci.yml)
 
+**[▶ Live demo](https://forecast-studio-pink.vercel.app)**
+
 A time series forecasting workbench: 6 models behind one interface, walk-forward backtesting, prediction intervals, and a Flask demo UI.
 
 ![Forecast Studio: a Holt-Winters forecast on the retail series with a 95% prediction interval and walk-forward backtest metrics](screenshots/app.jpg)
