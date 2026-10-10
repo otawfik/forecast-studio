@@ -1,8 +1,10 @@
 # Forecast Studio
 
+[![tests](https://github.com/otawfik/forecast-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/otawfik/forecast-studio/actions/workflows/ci.yml)
+
 A time series forecasting workbench: 6 models behind one interface, walk-forward backtesting, prediction intervals, and a Flask demo UI.
 
-![Forecast Studio demo](screenshots/demo.svg)
+![Forecast Studio: a Holt-Winters forecast on the retail series with a 95% prediction interval and walk-forward backtest metrics](screenshots/app.jpg)
 
 ## Features
 
@@ -95,12 +97,6 @@ forecast-studio/
 ├── tests/                 # 37 pytest tests
 └── screenshots/demo.svg
 ```
-
-## Resume bullets
-
-- Built a time series forecasting workbench in Python comparing 6 models (Holt-Winters, ARIMA, lag-feature regression, 3 baselines) under 5-fold walk-forward backtesting
-- Implemented 95% prediction intervals and a Flask demo UI with dataset selection, CSV upload, and forecast visualization
-- Best model hit 2.7% MAPE on 14-day retail forecasts; lag-feature regression won on series with yearly seasonality
 
 ## Tech
 
